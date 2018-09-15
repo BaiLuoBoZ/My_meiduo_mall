@@ -108,9 +108,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'zh-hans'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Shanghai'
 
 USE_I18N = True
 
@@ -122,3 +122,29 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
 STATIC_URL = '/static/'
+
+# Django 缓存设置（默认保存在django服务器内存中）
+# 这里是把缓存保存在redis中
+CACHES = {
+    # default表示缓存空间名称，缓存可以设置有多个空间名称
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        # 指定缓存空间对应的redis地址
+        "LOCATION": "redis://127.0.0.1:6379/0",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    },
+    "session": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+# 设置将django的session存储到缓存中，这里已经把缓存设置为redis，所以session会保存到redis中
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+# 指定session信息使用缓存的哪个空间名称
+SESSION_CACHE_ALIAS = "session"
