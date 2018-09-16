@@ -3,10 +3,12 @@ import re
 from django_redis import get_redis_connection
 from rest_framework import serializers
 
-# 创建用户序列化器类
+from rest_framework_jwt.settings import api_settings
+
 from users.models import User
 
 
+# 创建用户序列化器类
 class CreateUserSerializer(serializers.ModelSerializer):
     """
     创建用户序列化器
@@ -91,5 +93,13 @@ class CreateUserSerializer(serializers.ModelSerializer):
         user.set_password(validated_data['password'])
         # 保存用户对象
         user.save()
+
+        # 补充生成记录登录状态的token
+        jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
+        jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
+        payload = jwt_payload_handler(user)
+        token = jwt_encode_handler(payload)
+        user.token = token
+
         # 将user对象返回
         return user
