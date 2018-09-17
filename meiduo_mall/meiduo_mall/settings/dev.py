@@ -228,6 +228,10 @@ CORS_ALLOW_CREDENTIALS = True  # 允许携带cookie
 
 JWT_AUTH = {
     'JWT_EXPIRATION_DELTA': datetime.timedelta(days=1),
+    # 指定JWT扩展登录视图获取响应数据方法
+    'JWT_RESPONSE_PAYLOAD_HANDLER':
+    'users.utils.jwt_response_payload_handler',
+
 }
 
 # 使用自定义的认证后端

@@ -5,6 +5,17 @@ from django.contrib.auth.backends import ModelBackend
 from users.models import User
 
 
+def jwt_response_payload_handler(token, user=None, request=None):
+    """
+    自定义jwt认证成功返回数据
+    """
+    return {
+        'token': token,
+        'user_id': user.id,
+        'username': user.username
+    }
+
+
 def get_user_by_account(account):
     """
     根据帐号获取user对象

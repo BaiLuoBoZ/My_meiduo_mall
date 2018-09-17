@@ -16,10 +16,11 @@ class CreateUserSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(label="确认密码", write_only=True)  # 表明该字段仅用于反序列化输入
     sms_code = serializers.CharField(label="短信验证码", write_only=True)
     allow = serializers.CharField(label="同意协议", write_only=True)
+    token = serializers.CharField(label="登陆状态token", read_only=True)
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'password', 'password2', 'sms_code', 'allow', 'mobile')
+        fields = ('id', 'username', 'password', 'password2', 'sms_code', 'allow', 'mobile', 'token')
         extra_kwargs = {
             "username": {
                 "max_length": 20,
@@ -97,8 +98,11 @@ class CreateUserSerializer(serializers.ModelSerializer):
         # 补充生成记录登录状态的token
         jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
         jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
+        # 生成载荷
         payload = jwt_payload_handler(user)
+        # 生成jwk token
         token = jwt_encode_handler(payload)
+        # 给user对象增加属性token，保存服务器签发的jwt token数据
         user.token = token
 
         # 将user对象返回
