@@ -1,5 +1,4 @@
-
-from rest_framework.generics import CreateAPIView, RetrieveAPIView
+from rest_framework.generics import CreateAPIView, RetrieveAPIView, GenericAPIView, UpdateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -8,7 +7,7 @@ from users import serializers
 from users.models import User
 
 # usernames/(?P<username>\w{5,20})/count/
-from users.serializers import CreateUserSerializer
+from users.serializers import CreateUserSerializer, EmailSerializer
 
 
 class UsernameCountView(APIView):
@@ -61,6 +60,15 @@ class UserDetailView(RetrieveAPIView):
     用户详情
     """
     serializer_class = serializers.UserDetailSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+
+class EmailView(UpdateAPIView):
+    """保存用户邮箱"""
+    serializer_class = EmailSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
