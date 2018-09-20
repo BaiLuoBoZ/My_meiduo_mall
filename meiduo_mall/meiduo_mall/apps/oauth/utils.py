@@ -30,10 +30,10 @@ class OAuthQQ(object):
         """
         # 组织参数
         params = {
-            'response_type': 'code',
-            'client_id': self.client_id,
-            'redirect_uri': self.redirect_uri,
-            'state': self.state,
+            'response_type': 'code',  # 授权类型，此值固定为“code”。
+            'client_id': self.client_id,  # 申请QQ登录成功后，分配给应用的appid。
+            'redirect_uri': self.redirect_uri,  # 成功授权后的回调地址，必须是注册appid时填写的主域名下的地址，建议设置为网站首页或网站的用户中心。注意需要将url进行URLEncode
+            'state': self.state,  # client端的状态值。用于第三方应用防止CSRF攻击，成功授权后回调时会原样带回。请务必严格按照流程检查用户与state参数状态的绑定。
             'scope': 'get_user_info'
         }
 
@@ -149,4 +149,3 @@ class OAuthQQ(object):
             return None
         else:
             return data.get('openid')
-

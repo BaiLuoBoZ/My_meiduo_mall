@@ -1,9 +1,11 @@
-from rest_framework.generics import CreateAPIView
+
+from rest_framework.generics import CreateAPIView, RetrieveAPIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from users import serializers
 from users.models import User
-
 
 # usernames/(?P<username>\w{5,20})/count/
 from users.serializers import CreateUserSerializer
@@ -52,3 +54,14 @@ class UserView(CreateAPIView):
     """
     # 指明该视图使用的序列化器
     serializer_class = CreateUserSerializer
+
+
+class UserDetailView(RetrieveAPIView):
+    """
+    用户详情
+    """
+    serializer_class = serializers.UserDetailSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
