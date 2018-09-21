@@ -1,14 +1,16 @@
 from rest_framework import status
 from rest_framework.generics import CreateAPIView, RetrieveAPIView, GenericAPIView, UpdateAPIView
+from rest_framework.mixins import CreateModelMixin, UpdateModelMixin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.viewsets import GenericViewSet
 
-from users import serializers
+from users import serializers, constants
 from users.models import User
 
 # usernames/(?P<username>\w{5,20})/count/
-from users.serializers import CreateUserSerializer, EmailSerializer
+from users.serializers import CreateUserSerializer, EmailSerializer, UserAddressSerializer
 
 
 class UsernameCountView(APIView):
@@ -96,3 +98,39 @@ class VerifyEmailView(APIView):
             user.save()
 
             return Response({"message": "OK"})
+
+
+class AddressViewSet(CreateModelMixin, UpdateModelMixin, GenericViewSet):
+    """用户地址新增和修改"""
+
+    serializer_class = UserAddressSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.request.user.addresses.filter(is_deleted=False)
+
+    # GET /addresses/
+    def list(self, request, *args, **kwargs):
+        # 获取用户地址列表
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        user = self.request.user
+
+        # 将数据返回
+        return Response({
+            'user_id': user.id,
+            'default_address_id': user.default_address_id,
+            'limit': constants.USER_ADDRESS_COUNTS_LIMIT,
+            'addresses': serializer.data,
+        })
+
+    def create(self, request, *args, **kwargs):
+        # 保存用户地址
+        # 检查用户地址数量有没有超过上限
+        count = self.request.user.addresses.filter(is_deleted=False).count()
+
+        if count > constants.USER_ADDRESS_COUNTS_LIMIT:
+            return Response({"message": "地址数量超过上限"}, status=status.HTTP_400_BAD_REQUEST)
+
+        return super().create(request, *args, **kwargs)
+
