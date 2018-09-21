@@ -1,4 +1,5 @@
 from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.generics import CreateAPIView, RetrieveAPIView, GenericAPIView, UpdateAPIView
 from rest_framework.mixins import CreateModelMixin, UpdateModelMixin
 from rest_framework.permissions import IsAuthenticated
@@ -10,7 +11,7 @@ from users import serializers, constants
 from users.models import User
 
 # usernames/(?P<username>\w{5,20})/count/
-from users.serializers import CreateUserSerializer, EmailSerializer, UserAddressSerializer
+from users.serializers import CreateUserSerializer, EmailSerializer, UserAddressSerializer, AddressTitleSerializer
 
 
 class UsernameCountView(APIView):
@@ -134,3 +135,41 @@ class AddressViewSet(CreateModelMixin, UpdateModelMixin, GenericViewSet):
 
         return super().create(request, *args, **kwargs)
 
+    # delete /addresses/<pk>/
+    def destroy(self, request, *args, **kwargs):
+        """处理删除"""
+        address = self.get_object()
+        # 进行逻辑删除
+        address.is_deleted = True
+        # 保存
+        address.save()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    # put / addresses / pk / status /
+    @action(methods=['put'], detail=True)
+    def status(self, request, pk=None):
+        """
+        设置默认地址
+        """
+
+        address = self.get_object()
+        # 设置默认地址
+        request.user.default_address = address
+        request.user.save()
+
+        return Response({"message": "OK"}, status=status.HTTP_200_OK)
+
+    # put /addresses/pk/title/
+    @action(methods=['put'], detail=True)
+    def title(self, request, pk=None):
+        """
+        修改标题
+        """
+        address = self.get_object()
+
+        serializer = AddressTitleSerializer(address, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data)
