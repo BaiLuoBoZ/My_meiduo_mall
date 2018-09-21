@@ -259,3 +259,11 @@ EMAIL_HOST_USER = 'zhuzancong@163.com'
 EMAIL_HOST_PASSWORD = 'zxc9527'
 # 收件人看到的发件人
 EMAIL_FROM = '美多商城<zhuzancong@163.com>'
+
+# DRF扩展(设置缓存)
+REST_FRAMEWORK_EXTENSIONS = {
+    # 缓存时间
+    'DEFAULT_CACHE_RESPONSE_TIMEOUT': 60 * 60,
+    # 缓存存储
+    'DEFAULT_USE_CACHE': 'default',
+}

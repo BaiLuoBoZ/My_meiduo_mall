@@ -4,12 +4,13 @@ from django.shortcuts import render
 
 from rest_framework.generics import RetrieveAPIView, ListAPIView
 from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework_extensions.cache.mixins import CacheResponseMixin
 
 from areas.models import Area
 from areas.serializers import AreasProvinceSerializer, AreaSubSerializer
 
 
-class AreasView(ReadOnlyModelViewSet):
+class AreasView(CacheResponseMixin, ReadOnlyModelViewSet):
     """视图集"""
 
     def get_serializer_class(self):
