@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'areas.apps.AreasConfig',
     'contents.apps.ContentsConfig',
     'goods.apps.GoodsConfig',
+    'pics.apps.PicsConfig'
 ]
 
 MIDDLEWARE = [

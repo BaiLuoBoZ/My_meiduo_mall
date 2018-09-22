@@ -15,7 +15,7 @@ class FDFSStorage(Storage):
         client = Fdfs_client(settings.FDFS_CLIENT_CONF)
 
         # 上传文件到fastdfs文件存储系统
-        res = client.append_by_buffer(content.read())
+        res = client.upload_by_buffer(content.read())
 
         if res.get('Status') != "Upload successed.":
             raise Exception("上传文件到FastDFS文件系统出错")
