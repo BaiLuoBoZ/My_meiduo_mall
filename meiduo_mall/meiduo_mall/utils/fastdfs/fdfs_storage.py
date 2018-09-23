@@ -14,12 +14,6 @@ class FDFSStorage(Storage):
         :param base_url: 用于构造图片完整路径使用，图片服务器的域名
         :param client_conf: FastDFS客户端配置文件的路径
         """
-        # if base_url is None:
-        #     base_url = settings.FDFS_URL
-        # self.base_url = base_url
-        # if client_conf is None:
-        #     client_conf = settings.FDFS_CLIENT_CONF
-        # self.client_conf = client_conf
         if base_url is None:
             base_url = settings.FDFS_URL
         self.base_url = base_url
