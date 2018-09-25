@@ -1,3 +1,4 @@
+from django_redis import get_redis_connection
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.generics import CreateAPIView, RetrieveAPIView, GenericAPIView, UpdateAPIView
@@ -7,6 +8,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 
+from goods.models import SKU
+from goods.serializers import SKUSerializer
 from users import serializers, constants
 from users.models import User
 
@@ -177,18 +180,37 @@ class AddressViewSet(CreateModelMixin, UpdateModelMixin, GenericViewSet):
 
 
 # POST /browse_histories/
-class UserBrowsingHistoryView(GenericAPIView):
-    """保存历史浏览记录"""
+class UserBrowsingHistoryView(CreateAPIView):
+    """保存/查看历史浏览记录"""
     # 设置只有认证成功的用户才能访问此视图
     permission_classes = [IsAuthenticated]
     # 使用指定的序列化器
     serializer_class = AddUserBrowsingHistorySerializer
 
-    def post(self, request):
-        # 使用序列化器校验参数
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        # 保存
-        serializer.save()
+    # def post(self, request):
+    #     # 使用序列化器校验参数
+    #     serializer = self.get_serializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #     # 保存
+    #     serializer.save()
+    #
+    #     return Response(request.data, status=status.HTTP_201_CREATED)
 
-        return Response(request.data, status=status.HTTP_201_CREATED)
+    def get(self, request):
+        """查看用户历史浏览记录"""
+        # 创建数据库连接对象
+        redis_conn = get_redis_connection('history')
+        # 拼接key
+        history_key = 'history_%s' % request.user.id
+        # 获取redis列表指定区间的元素
+        sku_id_list = redis_conn.lrange(history_key, 0, constants.USER_BROWSING_HISTORY_COUNTS_LIMIT - 1)
+
+        sku_list = []
+        for sku_id in sku_id_list:
+            sku = SKU.objects.get(id=sku_id)
+            # 将商品对象添加到模型类对象中
+            sku_list.append(sku)
+        # 将数据进行序列化,并返回
+        serializer = SKUSerializer(sku_list, many=True)
+
+        return Response(serializer.data)
