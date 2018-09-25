@@ -8,6 +8,8 @@ from rest_framework import serializers
 from rest_framework_jwt.settings import api_settings
 
 from celery_tasks.email.tasks import send_verify_email
+from goods.models import SKU
+from users import constants
 from users.models import User, Address
 
 
@@ -178,3 +180,40 @@ class AddressTitleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
         fields = ('title',)
+
+
+class AddUserBrowsingHistorySerializer(serializers.Serializer):
+    """保存用户浏览历史记录序列化器"""
+    sku_id = serializers.IntegerField(label="商品id")
+
+    def validate_sku_id(self, value):
+        # 校验sku_id是否存在
+        try:
+            SKU.objects.get(id=value)
+        except SKU.DoesNotExist:
+            raise serializers.ValidationError("该商品不存在")
+
+        return value
+
+    def create(self, validated_data):
+        """保存用户浏览历史记录"""
+        # 获取用户id
+        user = self.context['request'].user
+        user_id = user.id
+        sku_id = validated_data.get('sku_id')
+        # 创建reids连接对象
+        redis_conn = get_redis_connection('history')
+        # 使用管道保存命令
+        pl = redis_conn.pipeline()
+        # 移除有重复sku_id的数据
+        pl.lrem('history_%s' % user_id, 0, sku_id)
+        # 从redis列表的左侧添加元素
+        pl.lpush('history_%s' % user_id, sku_id)
+        # 只保存最多5条记录
+        pl.ltrim('history_%s' % user_id, 0, constants.USER_BROWSING_HISTORY_COUNTS_LIMIT - 1)
+
+        # 执行管道里面的代码
+        pl.execute()
+
+        # 这里不返回user对象，直接返回validated_data也是可以的，在视图函数中得到的request.data就是校验之后的数据
+        return validated_data

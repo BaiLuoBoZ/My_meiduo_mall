@@ -11,7 +11,8 @@ from users import serializers, constants
 from users.models import User
 
 # usernames/(?P<username>\w{5,20})/count/
-from users.serializers import CreateUserSerializer, EmailSerializer, UserAddressSerializer, AddressTitleSerializer
+from users.serializers import CreateUserSerializer, EmailSerializer, UserAddressSerializer, AddressTitleSerializer, \
+    AddUserBrowsingHistorySerializer
 
 
 class UsernameCountView(APIView):
@@ -173,3 +174,21 @@ class AddressViewSet(CreateModelMixin, UpdateModelMixin, GenericViewSet):
         serializer.save()
 
         return Response(serializer.data)
+
+
+# POST /browse_histories/
+class UserBrowsingHistoryView(GenericAPIView):
+    """保存历史浏览记录"""
+    # 设置只有认证成功的用户才能访问此视图
+    permission_classes = [IsAuthenticated]
+    # 使用指定的序列化器
+    serializer_class = AddUserBrowsingHistorySerializer
+
+    def post(self, request):
+        # 使用序列化器校验参数
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        # 保存
+        serializer.save()
+
+        return Response(request.data, status=status.HTTP_201_CREATED)
