@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from carts import constants
-from carts.serializers import CartSerializer, CartSKUSerializer
+from carts.serializers import CartSerializer, CartSKUSerializer, CartDeleteSerializer
 from goods.models import SKU
 
 
@@ -178,7 +178,7 @@ class CartView(APIView):
         except Exception:
             user = None
 
-        if user:
+        if user is not None and user.is_authenticated:
             # 登陆用户
             cart_key = "cart_%s" % user.id
             redis_conn.hset(cart_key, sku_id, count)
@@ -218,5 +218,59 @@ class CartView(APIView):
 
             # 设置cookie
             response.set_cookie('cart', cart_data, max_age=constants.CART_COOKIE_EXPIRES)
+
+            return response
+
+    def delete(self, request):
+        """删除购物车商品"""
+        # 校验参数
+        serializer = CartDeleteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # 获取校验之后的参数
+        sku_id = serializer.validated_data.get('sku_id')
+
+        # 链接redis数据库
+        redis_conn = get_redis_connection("cart")
+
+        # 获取登陆用户
+        try:
+            user = request.user
+        except Exception:
+            user = None
+
+        if user and user.is_authenticated:
+            # 登陆状态
+            cart_key = 'cart_%s' % user.id
+            # 删除hash中指定的属性和值，有则删除，无则忽略
+            redis_conn.hdel(cart_key, sku_id)
+
+            cart_selected_key = "cart_selected_%s" % user.id
+            # 删除set集合中的元素，有则删除，无则忽略
+            redis_conn.srem(cart_selected_key, sku_id)
+
+            # 返回响应
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        else:
+            # 用户未登陆状态
+            response = Response(status=status.HTTP_204_NO_CONTENT)
+            cookie_cart = request.COOKIES.get('cart')
+
+            if not cookie_cart:
+                return response
+
+            # 解析cookie数据
+            cart_dict = pickle.loads(base64.b64decode(cookie_cart))
+
+            if not cart_dict:
+                return response
+
+            if sku_id in cart_dict:
+                del cart_dict[sku_id]
+
+            cart_data = base64.b64encode(pickle.dumps(cart_dict))
+
+            response.set_cookie('cart', cart_data, expires=constants.CART_COOKIE_EXPIRES)
 
             return response
