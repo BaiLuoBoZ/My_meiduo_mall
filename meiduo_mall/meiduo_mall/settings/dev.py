@@ -53,7 +53,8 @@ INSTALLED_APPS = [
     'areas.apps.AreasConfig',
     'contents.apps.ContentsConfig',
     'goods.apps.GoodsConfig',
-    'pics.apps.PicsConfig'
+    'pics.apps.PicsConfig',
+    'carts.apps.CartsConfig',
 ]
 
 MIDDLEWARE = [
@@ -163,13 +164,22 @@ CACHES = {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
     },
+    # 保存历史浏览记录
     "history": {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": "redis://127.0.0.1:6379/4",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
-    }
+    },
+    # 保存购物车信息
+    "cart": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/5",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    },
 }
 
 # 设置将django的session存储到缓存中，这里已经把缓存设置为redis，所以session会保存到redis中
