@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from carts import constants
-from carts.serializers import CartSerializer, CartSKUSerializer, CartDeleteSerializer
+from carts.serializers import CartSerializer, CartSKUSerializer, CartDeleteSerializer, CartSelectAllSerializer
 from goods.models import SKU
 
 
@@ -270,6 +270,83 @@ class CartView(APIView):
                 del cart_dict[sku_id]
 
             cart_data = base64.b64encode(pickle.dumps(cart_dict))
+
+            response.set_cookie('cart', cart_data, expires=constants.CART_COOKIE_EXPIRES)
+
+            return response
+
+
+class CartSelectAllView(APIView):
+    """全选/取消全选"""
+
+    def perform_authentication(self, request):
+        """跳过系统的JWT token检查，让没有登陆的用户也可以访问此视图"""
+        pass
+
+    def put(self, request):
+        """全选/取消全选"""
+
+        # 使用序列化器校验参数
+        serializer = CartSelectAllSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # 获取校验之后的参数
+        selected = serializer.validated_data.get('selected')
+
+        # 创建redis链接对象
+        redis_conn = get_redis_connection('cart')
+
+        # 获取user对象
+        try:
+            user = request.user
+        except Exception:
+            user = None
+
+        if user is not None and user.is_authenticated:
+            # 用户登陆状态
+            if selected:
+                # 全选
+                cart_key = 'cart_%s' % user.id
+                # 获取hash中所有的属性
+                sku_ids = redis_conn.hkeys(cart_key)
+
+                cart_selected_key = "cart_selected_%s" % user.id
+                # 向set集合中添加元素，忽略已添加的元素
+                redis_conn.sadd(cart_selected_key, *sku_ids)
+            else:
+                # 取消全选
+                cart_key = 'cart_%s' % user.id
+                # 获取hash中所有的属性
+                sku_ids = redis_conn.hkeys(cart_key)
+
+                cart_selected_key = "cart_selected_%s" % user.id
+                # 从set集合中移除元素，存在就移除，不存在就忽略
+                redis_conn.srem(cart_selected_key, *sku_ids)
+
+            # 返回状态
+            return Response({'message': 'OK'})
+
+        else:
+            # 用户未登陆状态
+            cart_cookie = request.COOKIES.get('cart')
+
+            if not cart_cookie:
+                return Response({'message': 'OK'})
+
+            # 解析cookie
+            cart_dict = pickle.loads(base64.b64decode(cart_cookie))
+
+            if not cart_dict:
+                return Response({'message': 'OK'})
+
+            for sku_id in cart_dict.keys():
+                cart_dict[sku_id]['selected'] = selected
+
+            # 转换为字符串
+            cart_data = base64.b64encode(pickle.dumps(cart_dict)).decode()
+
+            # 构建响应对象
+            response = Response({'message': 'OK'})
 
             response.set_cookie('cart', cart_data, expires=constants.CART_COOKIE_EXPIRES)
 
