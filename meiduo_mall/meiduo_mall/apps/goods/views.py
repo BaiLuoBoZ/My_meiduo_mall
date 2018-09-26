@@ -1,13 +1,14 @@
 from django.shortcuts import render
 
 # Create your views here.
+from drf_haystack.viewsets import HaystackViewSet
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import GenericAPIView, ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from goods.models import SKU
-from goods.serializers import SKUSerializer
+from goods.serializers import SKUSerializer, SKUIndexSerializer
 
 
 # GET /categories/(?P<category_id>\d+)/skus?page=xxx&page_size=xxx&ordering=xxx
@@ -34,3 +35,10 @@ class SKUListView(ListAPIView):
     #     serializer = self.get_serializer(sku_list, many=True)
     #
     #     return Response(serializer.data)
+
+class SKUSearchViewSet(HaystackViewSet):
+    """
+    SKU搜索
+    """
+    index_models = [SKU]
+    serializer_class = SKUIndexSerializer

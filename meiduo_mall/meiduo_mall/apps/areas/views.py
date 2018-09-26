@@ -12,6 +12,7 @@ from areas.serializers import AreasProvinceSerializer, AreaSubSerializer
 
 class AreasView(CacheResponseMixin, ReadOnlyModelViewSet):
     """视图集"""
+    pagination_class = None
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -24,7 +25,6 @@ class AreasView(CacheResponseMixin, ReadOnlyModelViewSet):
             return Area.objects.filter(parent_id=None).all()
         else:
             return Area.objects.all()
-
 
 # class AreasProvinceView(ListAPIView):
 #     """获取省份信息"""
