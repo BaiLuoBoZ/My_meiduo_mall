@@ -7,7 +7,7 @@ from rest_framework.generics import GenericAPIView, ListAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from goods.models import SKU
+from goods.models import SKU, GoodsCategory
 from goods.serializers import SKUSerializer, SKUIndexSerializer
 
 
@@ -36,9 +36,31 @@ class SKUListView(ListAPIView):
     #
     #     return Response(serializer.data)
 
+
 class SKUSearchViewSet(HaystackViewSet):
     """
     SKU搜索
     """
     index_models = [SKU]
     serializer_class = SKUIndexSerializer
+
+
+# GET /categories/(?P<cat>\d)/
+class SKUCategoriesView(APIView):
+    """查询商品分类"""
+    pagination_class = None
+
+    def get(self, request, cat):
+        # 查询当前商品的父分类
+
+        cat3 = GoodsCategory.objects.get(id=cat)
+        cat2 = GoodsCategory.objects.get(id=cat3.parent_id)
+        cat1 = GoodsCategory.objects.get(id=cat2.parent_id)
+
+        data = {
+            'cat3': {'name': cat3.name},
+            'cat2': {'name': cat2.name},
+            'cat1': {"url": cat1.goodschannel_set.all().get().url, "category": {"name": cat1.name, "id": cat1.id}}
+        }
+
+        return Response(data=data)
