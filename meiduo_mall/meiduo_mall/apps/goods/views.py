@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from goods.models import SKU, GoodsCategory
-from goods.serializers import SKUSerializer, SKUIndexSerializer
+from goods.serializers import SKUSerializer, SKUIndexSerializer, SKUHotsSerializer
 
 
 # GET /categories/(?P<category_id>\d+)/skus?page=xxx&page_size=xxx&ordering=xxx
@@ -64,3 +64,21 @@ class SKUCategoriesView(APIView):
         }
 
         return Response(data=data)
+
+
+class SKUHotsView(GenericAPIView):
+    """热销商品排行"""
+    # 关闭分页
+    pagination_class = None
+    serializer_class = SKUHotsSerializer
+
+    def get(self, request, cat):
+        """获取当前热销商品排行"""
+        # 从大到小获取所有的热销商品
+        sku_hots = SKU.objects.filter(category_id=cat).order_by('-sales')
+        if len(sku_hots) > 2:
+            sku_hots = sku_hots[0:2]
+        # 将数据进行序列化
+        serializer = self.get_serializer(sku_hots, many=True)
+
+        return Response(serializer.data)
