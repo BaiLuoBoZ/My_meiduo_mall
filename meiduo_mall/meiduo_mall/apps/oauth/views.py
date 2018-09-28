@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_jwt.settings import api_settings
 
+from carts.utils import merge_cart_cookie_to_redis
 from oauth.exceptions import QQAPIError
 from oauth.models import OAuthQQUser
 from oauth.serializer import OAuthQQUserSerializer
@@ -71,4 +72,13 @@ class QQAuthUserView(CreateAPIView):
                 'user_id': user.id,
                 'username': user.username
             })
+            merge_cart_cookie_to_redis(request, user, response)
+
             return response
+
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        user = self.user
+        merge_cart_cookie_to_redis(request, user, response)
+
+        return response
