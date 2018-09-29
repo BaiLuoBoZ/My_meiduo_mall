@@ -11,8 +11,10 @@ from rest_framework.views import APIView
 from orders.models import OrderInfo
 from alipay import AliPay
 
-
 # GET /orders/(?P<order_id>\d+)/payment/
+from payment.models import Payment
+
+
 class PaymentView(APIView):
     """
     支付
@@ -24,8 +26,8 @@ class PaymentView(APIView):
         # 判断订单信息是否正确
         try:
             order = OrderInfo.objects.get(order_id=order_id, user=request.user,
-                                             pay_method=OrderInfo.PAY_METHODS_ENUM['ALIPAY'],
-                                             status=OrderInfo.ORDER_STATUS_ENUM['UNPAID'])
+                                          pay_method=OrderInfo.PAY_METHODS_ENUM['ALIPAY'],
+                                          status=OrderInfo.ORDER_STATUS_ENUM['UNPAID'])
         except OrderInfo.DoesNotExist:
             return Response({'message': '订单错误'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -50,3 +52,54 @@ class PaymentView(APIView):
         alipay_url = settings.ALIPAY_URL + "?" + order_string
 
         return Response({'alipay_url': alipay_url})
+
+
+# PUT /payment/status/?
+class PaymentStatusView(APIView):
+    """
+    保存支付结果
+    """
+
+    def put(self, request):
+        data = request.query_params.dict()
+        signature = data.pop("sign")
+        alipay = AliPay(
+            appid=settings.ALIPAY_APPID,
+            app_notify_url=None,  # 默认回调url
+            app_private_key_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "keys/app_private_key.pem"),
+            alipay_public_key_path=os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                "keys/alipay_public_key.pem"),  # 支付宝的公钥，验证支付宝回传消息使用，不是你自己的公钥,
+            sign_type="RSA2",  # RSA 或者 RSA2
+            debug=settings.ALIPAY_DEBUG  # 默认False
+        )
+
+        success = alipay.verify(data, signature)
+
+        if not success:
+            return Response({'message': '非法请求'}, status=status.HTTP_403_FORBIDDEN)
+
+            # 获取订单编号和支付宝流水号
+        order_id = data.get('out_trade_no')
+        trade_id = data.get('trade_no')
+
+        # 校验订单id(order_id)
+        try:
+            order = OrderInfo.objects.get(
+                order_id=order_id,
+                user=request.user,
+                status=OrderInfo.ORDER_STATUS_ENUM['UNPAID']
+            )
+        except OrderInfo.DoesNotExist:
+            return Response({'message': '订单信息有误'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # 添加支付记录
+        Payment.objects.create(
+            order_id=order_id,
+            trade_id=trade_id
+        )
+
+        # 更新订单的支付状态
+        order.status = OrderInfo.ORDER_STATUS_ENUM['UNSEND']
+        order.save()
+
+        return Response({'trade_id': trade_id})
