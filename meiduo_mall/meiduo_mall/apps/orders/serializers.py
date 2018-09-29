@@ -103,8 +103,10 @@ class SaveOrder(serializers.ModelSerializer):
                     count = cart_dict[sku_id]
                     count = int(count)
 
-                    # 根据sku_id获取对应的商品
-                    sku = SKU.objects.get(id=sku_id)
+                    # 根据sku_id获取对应的商品,给该记录加锁，锁住后，别人无法在操作
+                    print('user: %s try get lock' % user.id)
+                    sku = SKU.objects.select_for_update().get(id=sku_id)
+                    print('user: %s get locked' % user.id)
                     # 判断商品的库存
                     if count > sku.stock:
                         raise serializers.ValidationError("商品库存不足")
