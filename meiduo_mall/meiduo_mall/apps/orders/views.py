@@ -1,13 +1,14 @@
 from decimal import Decimal
 
 from django_redis import get_redis_connection
+from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 # GET /orders/settlement/
 from goods.models import SKU
-from orders.serializers import OrderSettlementSerializer
+from orders.serializers import OrderSettlementSerializer, SaveOrder
 
 
 class OrderSettlementView(APIView):
@@ -55,3 +56,25 @@ class OrderSettlementView(APIView):
 
         # 返回序列化之后的数据
         return Response(serializer.data)
+
+
+# POST /orders/
+class SaveOrderView(CreateAPIView):
+    """保存订单"""
+    serializer_class = SaveOrder
+    permission_classes = [IsAuthenticated]
+
+    # def post(self, request):
+    #     """
+    #     1. 请求参数 address 收货地址id  pay_method 选择的付款方式
+    #     2. 返回数据 order_id  订单号
+    #     """
+    #     # 校验参数
+    #     serializer = SaveOrder(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #
+    #     # 保存
+    #     serializer.save()
+    #
+    #     # 将数据序列化返回
+    #     return Response(serializer.data)
